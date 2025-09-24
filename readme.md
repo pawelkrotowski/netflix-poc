@@ -10,7 +10,7 @@ This project is a lightweight **Netflix‑style recommender POC** built with:
 - **(Optional)** a **scheduled retraining process** that incorporates user feedback
 
 Runs on **CPU** and can use **GPU** if available. GPU is optional.
-
+<img height="600" src="screenshots/streamlite-ui.png" title="netflix poc" width="800"/>
 ---
 
 ## Table of contents
