@@ -1,0 +1,84 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.dylib
+*.egg-info/
+.dist-info/
+.eggs/
+build/
+dist/
+pip-wheel-metadata/
+.python-version
+
+# --- Wirtualne środowiska ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+.jupyter/
+*.nbconvert.ipynb
+
+# --- IDE/edytory ---
+.idea/
+.vscode/
+*.code-workspace
+
+# --- Systemowe ---
+.DS_Store
+Thumbs.db
+
+# --- Logi/temp ---
+logs/
+*.log
+tmp/
+.tmp/
+.cache/
+
+# --- Docker/Compose & sekrety ---
+.env
+.env.*
+docker-compose.override.yml
+*.local.yml
+
+# --- Dane i artefakty (trzymane poza GIT) ---
+/data/
+/artifacts/
+/mlruns/
+
+# Jeśli używasz innych nazw (np. workspace/), możesz dodać:
+# /workspace/data/
+# /workspace/artifacts/
+
+# Chcesz zostawić placeholdery? Odkomentuj i dodaj pliki:
+# !/data/README.md
+# !/artifacts/README.md
+# !/data/.gitkeep
+# !/artifacts/.gitkeep
+
+# --- Modele i wyniki eksperymentów (na wszelki wypadek) ---
+**/*.npz
+**/*.pt
+**/*.onnx
+**/*.h5
+**/*.ckpt
+
+# --- Bazy lokalne/cache narzędzi ---
+.pytest_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.sqlite
+*.sqlite3
+*.db
+
+# --- Inne (gdyby pojawił się frontend) ---
+node_modules/
+npm-debug.log*
+yarn-error.log*

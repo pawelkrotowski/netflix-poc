@@ -1,0 +1,140 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: poc_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+  mlflow:
+    build:
+      context: .
+      dockerfile: docker/mlflow.Dockerfile
+    container_name: poc_mlflow
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      mlflow server
+      --backend-store-uri ${MLFLOW_BACKEND_URI}
+      --default-artifact-root ${MLFLOW_ARTIFACT_ROOT}
+      --host 0.0.0.0
+      --port ${MLFLOW_PORT}
+    environment:
+      MLFLOW_BACKEND_URI: ${MLFLOW_BACKEND_URI}
+      MLFLOW_ARTIFACT_ROOT: ${MLFLOW_ARTIFACT_ROOT}
+    ports:
+      - "${MLFLOW_PORT}:${MLFLOW_PORT}"
+    volumes:
+      - ./artifacts:${MLFLOW_ARTIFACT_ROOT}
+
+  jupyter:
+    build:
+      context: .
+      dockerfile: docker/jupyter.Dockerfile
+    container_name: poc_jupyter
+    restart: unless-stopped
+    working_dir: /workspace
+    command: >
+      bash -lc "jupyter lab --ip=0.0.0.0 --port=${JUPYTER_PORT}
+      --no-browser --NotebookApp.token='' --NotebookApp.password='' --allow-root"
+    ports:
+      - "${JUPYTER_PORT}:${JUPYTER_PORT}"
+    volumes:
+      - ./:/workspace
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:${MLFLOW_PORT}
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mlflow:
+        condition: service_started
+    gpus: all
+  api:
+    build:
+      context: .
+      dockerfile: docker/jupyter.Dockerfile  # ten sam obraz co Jupyter (ma implicit)
+    container_name: poc_api
+    working_dir: /workspace
+    command: >
+      bash -lc "pip install --no-cache-dir fastapi uvicorn[standard]
+      && uvicorn src.api.main:app --host 0.0.0.0 --port ${API_PORT} --reload --workers 1"
+    volumes:
+      - ./:/workspace
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:${MLFLOW_PORT}
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+    ports:
+      - "${API_PORT}:${API_PORT}"
+    depends_on:
+      mlflow:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    profiles: [ "later" ]
+  ui:
+    image: python:3.12-slim
+    container_name: poc_ui
+    working_dir: /app
+    command: >
+      bash -lc "pip install --no-cache-dir streamlit pandas requests &&
+                streamlit run ui/app.py --server.port ${UI_PORT} --server.address 0.0.0.0"
+    volumes:
+      - ./:/app
+    environment:
+      UI_PORT: ${UI_PORT}
+      API_URL: http://api:8080
+
+    ports:
+      - "${UI_PORT}:${UI_PORT}"
+    depends_on:
+      api:
+        condition: service_started
+    profiles: [ "later" ]
+  trainer:
+    build:
+      context: .
+      dockerfile: docker/jupyter.Dockerfile
+    container_name: poc_trainer
+    working_dir: /workspace
+    command: >
+      bash -lc "python3 -m pip install --no-cache-dir requests threadpoolctl &&
+                python3 -u /workspace/scheduler/train_loop.py"
+    volumes:
+      - ./:/workspace
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:${MLFLOW_PORT}
+      API_RELOAD_URL: http://api:${API_PORT}/admin/reload-model
+      API_RELOAD_ART_URL: http://api:${API_PORT}/admin/reload-artifacts
+      TRAIN_INTERVAL_SEC: 86400
+      ALS_FACTORS: 64
+      ALS_REG: 0.02
+      ALS_ITERS: 15
+      ALS_ALPHA_UP: 2.0
+      MIN_IMPROVE: 0
+      OPENBLAS_NUM_THREADS: 1
+    depends_on:
+      mlflow:
+        condition: service_started
+      api:
+        condition: service_started
+    profiles: [ "later" ]
+    restart: always
+
+
+volumes:
+  pgdata:
