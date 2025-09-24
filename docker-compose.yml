@@ -69,9 +69,10 @@ services:
       dockerfile: docker/jupyter.Dockerfile  # ten sam obraz co Jupyter (ma implicit)
     container_name: poc_api
     working_dir: /workspace
-    command: >
-      bash -lc "pip install --no-cache-dir fastapi uvicorn[standard]
-      && uvicorn src.api.main:app --host 0.0.0.0 --port ${API_PORT} --reload --workers 1"
+#    command: >
+#      bash -lc "pip install --no-cache-dir fastapi uvicorn[standard]
+#      && uvicorn src.api.main:app --host 0.0.0.0 --port ${API_PORT} --reload --workers 1"
+    command: uvicorn src.api.app:app --host 0.0.0.0 --port 8080 --reload
     volumes:
       - ./:/workspace
     environment:
