@@ -42,7 +42,6 @@ tmp/
 
 # --- Docker/Compose & sekrety ---
 .env
-.env.*
 docker-compose.override.yml
 *.local.yml
 
